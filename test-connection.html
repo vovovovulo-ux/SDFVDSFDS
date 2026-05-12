@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>PO Connection Test</title>
+    <style>
+        body { font-family: monospace; background: #1a1a2e; color: #eee; padding: 20px; }
+        #log { background: #0f0f23; padding: 15px; border-radius: 8px; min-height: 300px; margin-top: 10px; white-space: pre-wrap; }
+        input { padding: 8px; width: 300px; background: #16213e; border: 1px solid #0f3460; color: #eee; border-radius: 4px; }
+        button { padding: 8px 16px; background: #e94560; color: white; border: none; border-radius: 4px; cursor: pointer; margin-left: 10px; }
+    </style>
+</head>
+<body>
+    <h2>🔌 Pocket Option WebSocket Test</h2>
+    <input type="text" id="ssidInput" placeholder="Вставь SSID сюда">
+    <button onclick="testConnection()">Test DEMO</button>
+    <button onclick="testRealServer()">Test REAL</button>
+    <div id="log"></div>
+
+    <script>
+        const WS_SERVER_DEMO = 'wss://demo.po.market/websocket/?EIO=4&transport=websocket';
+        const WS_SERVER_REAL = 'wss://api.po.market/websocket/?EIO=4&transport=websocket';
+        let ws = null;
+
+        function log(msg) {
+            const el = document.getElementById('log');
+            el.innerHTML += msg + '\n';
+            el.scrollTop = el.scrollHeight;
+        }
+
+        function testConnection() {
+            const ssid = document.getElementById('ssidInput').value.trim();
+            if (!ssid) { alert('Введите SSID!'); return; }
+
+            if (ws) ws.close();
+            document.getElementById('log').innerHTML = '';
+            
+            // Try demo server first
+            testWithServer(WS_SERVER_DEMO, ssid, 'DEMO');
+        }
+        
+        function testRealServer() {
+            const ssid = document.getElementById('ssidInput').value.trim();
+            if (!ssid) { alert('Введите SSID!'); return; }
+            
+            if (ws) ws.close();
+            document.getElementById('log').innerHTML = '';
+            
+            testWithServer(WS_SERVER_REAL, ssid, 'REAL');
+        }
+        
+        function testWithServer(serverUrl, ssid, type) {
+            log('🔵 Подключение к (' + type + '): ' + serverUrl);
+            
+            try {
+                ws = new WebSocket(serverUrl);
+            } catch(e) {
+                log('❌ Ошибка: ' + e.message);
+                return;
+            }
+
+            ws.onopen = function() {
+                log('✅ WebSocket подключен!');
+                log('⏳ Ожидаю handshake...');
+            };
+
+            ws.onmessage = function(event) {
+                const data = event.data;
+                log('📨 ' + data);
+                
+                if (data === '2') {
+                    ws.send('3');
+                    return;
+                }
+                
+                if (data === '40') {
+                    log('✅ Socket.io connected!');
+                    log('📤 Отправляю auth...');
+                    ws.send('42["auth",{"ssid":"' + ssid + '"}]');
+                    return;
+                }
+                
+                if (data.startsWith('42')) {
+                    try {
+                        const parsed = JSON.parse(data.substring(2));
+                        log('📦 ' + JSON.stringify(parsed, null, 2));
+                    } catch(e) {}
+                }
+            };
+
+            ws.onclose = function(e) {
+                log('❌ Отключено. Код: ' + e.code);
+            };
+
+            ws.onerror = function() {
+                log('⚠️ Ошибка соединения');
+            };
+        }
+
+        function testWithoutAuth() {
+            if (ws) ws.close();
+            document.getElementById('log').innerHTML = '';
+            
+            log('🔵 Подключение без авторизации...');
+            
+            ws = new WebSocket(WS_SERVER);
+            
+            ws.onopen = function() {
+                log('✅ WebSocket подключен');
+                log('⏳ Ожидаю сообщения от сервера...');
+            };
+
+            ws.onmessage = function(event) {
+                const data = event.data;
+                log('📨 ' + data);
+                
+                if (data === '2') {
+                    ws.send('3');
+                    log('📤 Pong');
+                }
+                
+                if (data === '40') {
+                    log('✅ Socket.io connected!');
+                }
+            };
+
+            ws.onclose = function(e) {
+                log('❌ Отключено. Код: ' + e.code);
+            };
+        }
+    </script>
+</body>
+</html>

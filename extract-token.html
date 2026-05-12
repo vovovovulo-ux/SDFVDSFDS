@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔑 Извлечь токен Pocket Option</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: #eee;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .container {
+            max-width: 800px;
+            width: 100%;
+        }
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 32px;
+        }
+        .steps {
+            background: #0f0f23;
+            padding: 25px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            border-left: 4px solid #42a5f5;
+        }
+        .steps h3 {
+            color: #42a5f5;
+            margin-bottom: 15px;
+            font-size: 20px;
+        }
+        .steps ol {
+            padding-left: 20px;
+        }
+        .steps li {
+            margin: 10px 0;
+            line-height: 1.6;
+            font-size: 15px;
+        }
+        .steps code {
+            background: #16213e;
+            padding: 3px 8px;
+            border-radius: 4px;
+            color: #00ff00;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+        }
+        .result-box {
+            background: #0f0f23;
+            padding: 25px;
+            border-radius: 12px;
+            border-left: 4px solid #00b894;
+            margin-bottom: 20px;
+        }
+        .result-box h3 {
+            color: #00b894;
+            margin-bottom: 15px;
+        }
+        .token-display {
+            background: #16213e;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            word-break: break-all;
+            color: #ffeb3b;
+            min-height: 50px;
+            margin: 10px 0;
+        }
+        .btn {
+            background: #00b894;
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            width: 100%;
+            margin: 10px 0;
+            transition: all 0.3s;
+        }
+        .btn:hover {
+            background: #00a884;
+            transform: translateY(-2px);
+        }
+        .btn.copy {
+            background: #42a5f5;
+        }
+        .btn.copy:hover {
+            background: #2196f3;
+        }
+        .status {
+            text-align: center;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+            font-weight: bold;
+        }
+        .status.success {
+            background: rgba(0, 184, 148, 0.2);
+            color: #00b894;
+            border: 2px solid #00b894;
+        }
+        .status.error {
+            background: rgba(233, 69, 96, 0.2);
+            color: #e94560;
+            border: 2px solid #e94560;
+        }
+        .warning {
+            background: rgba(255, 152, 0, 0.1);
+            border: 2px solid #ff9800;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        .warning p {
+            color: #ff9800;
+            margin: 5px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔑 Извлечь токен Pocket Option</h1>
+        
+        <div class="steps">
+            <h3>📋 Инструкция:</h3>
+            <ol>
+                <li>Открой <strong>Pocket Option</strong> в браузере (войди в аккаунт)</li>
+                <li>Нажми <strong>F12</strong> чтобы открыть DevTools</li>
+                <li>Перейди во вкладку <strong>Console</strong></li>
+                <li>Скопируй и вставь этот код: <code>document.cookie</code></li>
+                <li>Нажми <strong>Enter</strong></li>
+                <li>Скопируй результат и вставь в поле ниже</li>
+            </ol>
+        </div>
+
+        <div class="warning">
+            <p>⚠️ <strong>Важно:</strong> Ты должен быть авторизован в Pocket Option!</p>
+            <p>⏰ Токен работает только пока ты не выйдешь из аккаунта</p>
+        </div>
+
+        <div class="result-box">
+            <h3>📥 Вставь cookies:</h3>
+            <textarea id="cookieInput" placeholder="Вставь сюда результат document.cookie..." 
+                style="width:100%; min-height:100px; padding:15px; background:#16213e; border:2px solid #42a5f5; border-radius:8px; color:#eee; font-family:'Courier New', monospace; font-size:14px; resize:vertical;"></textarea>
+            
+            <button class="btn" onclick="extractToken()">🔍 Извлечь SSID токен</button>
+        </div>
+
+        <div id="statusBox" style="display:none;" class="status"></div>
+
+        <div id="resultBox" style="display:none;" class="result-box">
+            <h3>✅ Твой SSID токен:</h3>
+            <div id="tokenDisplay" class="token-display"></div>
+            <button class="btn copy" onclick="copyToken()">📋 Копировать токен</button>
+            <button class="btn" onclick="useToken()" style="background:#00b894; margin-top:10px;">🚀 Использовать в анализаторе</button>
+        </div>
+    </div>
+
+    <script>
+        let extractedToken = '';
+
+        function extractToken() {
+            const cookieString = document.getElementById('cookieInput').value.trim();
+            const statusBox = document.getElementById('statusBox');
+            const resultBox = document.getElementById('resultBox');
+            const tokenDisplay = document.getElementById('tokenDisplay');
+
+            if (!cookieString) {
+                statusBox.className = 'status error';
+                statusBox.textContent = '❌ Вставь cookies из консоли!';
+                statusBox.style.display = 'block';
+                resultBox.style.display = 'none';
+                return;
+            }
+
+            // Parse cookies to find ssid
+            const cookies = cookieString.split(';');
+            let ssidToken = null;
+
+            for (let cookie of cookies) {
+                const [name, value] = cookie.trim().split('=');
+                if (name.toLowerCase() === 'ssid') {
+                    ssidToken = value;
+                    break;
+                }
+            }
+
+            if (ssidToken) {
+                extractedToken = ssidToken;
+                tokenDisplay.textContent = ssidToken;
+                
+                statusBox.className = 'status success';
+                statusBox.textContent = '✅ Токен успешно извлечён!';
+                statusBox.style.display = 'block';
+                resultBox.style.display = 'block';
+            } else {
+                statusBox.className = 'status error';
+                statusBox.textContent = '❌ SSID токен не найден! Убедись что ты вошёл в Pocket Option';
+                statusBox.style.display = 'block';
+                resultBox.style.display = 'none';
+            }
+        }
+
+        function copyToken() {
+            if (extractedToken) {
+                navigator.clipboard.writeText(extractedToken).then(() => {
+                    const statusBox = document.getElementById('statusBox');
+                    statusBox.className = 'status success';
+                    statusBox.textContent = '✅ Токен скопирован в буфер обмена!';
+                    statusBox.style.display = 'block';
+                });
+            }
+        }
+
+        function useToken() {
+            if (extractedToken) {
+                // Try to send to analyzer if it's open in same browser
+                window.postMessage({
+                    type: 'PO_TOKEN',
+                    ssid: extractedToken
+                }, '*');
+                
+                const statusBox = document.getElementById('statusBox');
+                statusBox.className = 'status success';
+                statusBox.textContent = '✅ Токен отправлен! Теперь вставь его в анализатор';
+                statusBox.style.display = 'block';
+            }
+        }
+    </script>
+</body>
+</html>

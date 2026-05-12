@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pocket Option - Анализатор + Автоторговля</title>
+    <script src="https://unpkg.com/lightweight-charts@4.1.0/dist/lightweight-charts.standalone.production.js"></script>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div id="app">
+        <header class="header">
+            <div class="header-left">
+                <div class="logo">📊 Pocket Option Analyzer</div>
+                <div class="pair-selector">
+                    <label>Пара:</label>
+                    <select id="pairSelect">
+                        <optgroup label=" Forex">
+                            <option value="EUR/USD">EUR/USD</option>
+                            <option value="GBP/USD">GBP/USD</option>
+                            <option value="USD/JPY">USD/JPY</option>
+                            <option value="AUD/USD">AUD/USD</option>
+                            <option value="USD/CAD">USD/CAD</option>
+                            <option value="EUR/GBP">EUR/GBP</option>
+                            <option value="BTC/USD">BTC/USD</option>
+                            <option value="ETH/USD">ETH/USD</option>
+                        </optgroup>
+                        <optgroup label=" OTC">
+                            <option value="EUR/USD OTC">EUR/USD OTC</option>
+                            <option value="GBP/USD OTC">GBP/USD OTC</option>
+                            <option value="USD/JPY OTC">USD/JPY OTC</option>
+                            <option value="AUD/USD OTC">AUD/USD OTC</option>
+                            <option value="USD/CAD OTC">USD/CAD OTC</option>
+                            <option value="EUR/GBP OTC">EUR/GBP OTC</option>
+                            <option value="GBP/JPY OTC">GBP/JPY OTC</option>
+                            <option value="EUR/JPY OTC">EUR/JPY OTC</option>
+                            <option value="NZD/USD OTC">NZD/USD OTC</option>
+                            <option value="USD/CHF OTC">USD/CHF OTC</option>
+                            <option value="BTC/USD OTC">BTC/USD OTC</option>
+                            <option value="ETH/USD OTC">ETH/USD OTC</option>
+                        </optgroup>
+                    </select>
+                    <span class="otc-badge" id="otcBadge" style="display:none">OTC</span>
+                </div>
+                <div class="timeframe-selector">
+                    <label>Таймфрейм:</label>
+                    <div class="tf-buttons" id="tfButtons">
+                        <button class="tf-btn" data-tf="1">1м</button>
+                        <button class="tf-btn" data-tf="5">5м</button>
+                        <button class="tf-btn active" data-tf="15">15м</button>
+                        <button class="tf-btn" data-tf="30">30м</button>
+                        <button class="tf-btn" data-tf="60">1ч</button>
+                        <button class="tf-btn" data-tf="240">4ч</button>
+                    </div>
+                </div>
+            </div>
+            <div class="header-right">
+                <div class="price-display">
+                    <span class="price-label">Цена:</span>
+                    <span class="price-value" id="currentPrice">--</span>
+                </div>
+            <div class="connection-status" id="connStatus">
+                    <span class="conn-dot" id="connDot"></span>
+                    <span class="conn-text" id="connText">Отключено</span>
+                </div>
+                <div class="signal-confidence">
+                    <div class="confidence-bar">
+                        <div class="confidence-fill" id="confidenceFill" style="width:0%"></div>
+                    </div>
+                    <span class="confidence-text" id="confidenceText">0%</span>
+                </div>
+                <div class="signal-badge" id="mainSignal">Ожидание...</div>
+                <div class="expiry-recommendation" id="expiryRec">
+                    <span class="expiry-label">Экспирация:</span>
+                    <span class="expiry-value" id="expiryValue">--</span>
+                </div>
+            </div>
+        </header>
+
+        <div class="main-content">
+            <div class="chart-area">
+                <div class="chart-container" id="mainChart"></div>
+                <div class="indicator-chart" id="rsiChart"></div>
+                <div class="indicator-chart" id="macdChart"></div>
+            </div>
+
+            <aside class="sidebar">
+                <!-- Connection Panel -->
+                <div class="panel panel-connection">
+                    <h3>🔌 Подключение к Pocket Option</h3>
+                    <div class="connection-form">
+                        <div class="conn-row">
+                            <label>Тип счёта:</label>
+                            <div class="account-toggle">
+                                <button class="acc-btn active" id="btnDemo" data-type="demo">🟢 ДЕМО</button>
+                                <button class="acc-btn" id="btnReal" data-type="real">🔴 РЕАЛ</button>
+                            </div>
+                        </div>
+                        <div class="conn-row">
+                            <button class="connect-btn" id="oauthBtn">🔐 Войти через Google/Email</button>
+                            <button class="connect-btn" id="tokenAuthBtn" style="display:none;background:#42a5f5;">🔑 По токену</button>
+                            <button class="disconnect-btn" id="disconnectBtn" style="display:none">⏹ Отключить</button>
+                        </div>
+                        <div class="conn-info" id="connInfo">
+                            <span>Баланс: <strong id="apiBalance">--</strong></span>
+                            <span>UID: <strong id="apiUid">--</strong></span>
+                        </div>
+                        <div class="login-help">
+                            <p>💡 Нажми кнопку → войди в открывшемся окне → готово!</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- OAuth Login Window -->
+                <div id="oauthOverlay" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.95); z-index:9999;">
+                    <div style="position:absolute; top:0; left:0; right:0; background:linear-gradient(135deg, #16213e 0%, #1a1a2e 100%); padding:20px; display:flex; justify-content:space-between; align-items:center; border-bottom:3px solid var(--orange);">
+                        <div>
+                            <h3 style="margin:0; color:#eee; font-size:20px;">🔐 Авторизация Pocket Option</h3>
+                            <p style="margin:5px 0 0 0; color:#aaa; font-size:13px;">Войди через Google, Email или соцсети</p>
+                        </div>
+                        <button id="closeOauth" style="background:#e94560; color:white; border:none; padding:10px 20px; border-radius:6px; cursor:pointer; font-size:16px; font-weight:bold;">✕ Закрыть</button>
+                    </div>
+                    <div id="oauthStatus" style="position:absolute; top:80px; left:50%; transform:translateX(-50%); background:#00b894; color:white; padding:10px 20px; border-radius:8px; display:none; font-weight:bold;">
+                        ✅ Авторизация успешна! Подключаем...
+                    </div>
+                    <iframe id="oauthFrame" src="" style="position:absolute; top:80px; left:0; right:0; bottom:0; width:100%; border:none; background:white;"></iframe>
+                </div>
+
+                <!-- Token Input Modal -->
+                <div id="tokenModal" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.9); z-index:9999;">
+                    <div style="position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); background:#16213e; padding:30px; border-radius:12px; border:2px solid var(--orange); min-width:400px; max-width:600px;">
+                        <h3 style="margin:0 0 20px 0; color:#eee;">🔑 Введи SSID токен</h3>
+                        
+                        <div style="margin-bottom:15px;">
+                            <label style="color:#aaa; display:block; margin-bottom:8px;">1. Открой Pocket Option в браузере</label>
+                            <label style="color:#aaa; display:block; margin-bottom:8px;">2. Нажми F12 → Console</label>
+                            <label style="color:#aaa; display:block; margin-bottom:8px;">3. Введи: <code style="background:#0f0f23; padding:4px 8px; border-radius:4px; color:#00ff00;">document.cookie</code></label>
+                            <label style="color:#aaa; display:block; margin-bottom:15px;">4. Найди значение <code style="background:#0f0f23; padding:4px 8px; border-radius:4px; color:#00ff00;">ssid=XXXXX</code> и скопируй его</label>
+                            
+                            <input type="text" id="ssidToken" placeholder="Вставь ssid токен сюда..." style="width:100%; padding:12px; background:#0f0f23; border:2px solid #42a5f5; border-radius:6px; color:#eee; font-size:14px; font-family:monospace;">
+                        </div>
+                        
+                        <div style="display:flex; gap:10px;">
+                            <button id="confirmToken" style="flex:1; background:#00b894; color:white; border:none; padding:12px; border-radius:6px; font-size:16px; font-weight:bold; cursor:pointer;">✅ Подключить</button>
+                            <button id="cancelToken" style="flex:1; background:#e94560; color:white; border:none; padding:12px; border-radius:6px; font-size:16px; font-weight:bold; cursor:pointer;">Отмена</button>
+                        </div>
+                        
+                        <div style="margin-top:15px; padding:10px; background:#0f0f23; border-radius:6px;">
+                            <p style="margin:0; color:#aaa; font-size:12px;">💡 <strong>Совет:</strong> Токен выглядит как длинная строка символов после "ssid=" в cookies</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Auto-Trade Panel -->
+                <div class="panel panel-trading">
+                    <h3>🤖 Автоторговля</h3>
+                    <div class="trade-controls">
+                        <button class="trade-btn start" id="autoTradeBtn">▶ СТАРТ</button>
+                        <button class="trade-btn reset" id="resetStatsBtn">↻ Сброс</button>
+                    </div>
+                    <div class="trade-settings">
+                        <div class="setting-row">
+                            <label>Мин. конфидентность: <strong id="confVal">70%</strong></label>
+                            <input type="range" id="minConfidence" min="50" max="95" value="70" step="5">
+                        </div>
+                        <div class="setting-row">
+                            <label>Сумма ставки ($):</label>
+                            <input type="number" id="tradeAmount" value="1" min="1" max="100" step="0.5">
+                        </div>
+                        <div class="setting-row">
+                            <label>Макс. ставка ($):</label>
+                            <input type="number" id="maxTradeAmount" value="50" min="1" max="500" step="1">
+                        </div>
+                        <div class="setting-row">
+                            <label>Экспирация (мин):</label>
+                            <input type="number" id="expiryMinutes" value="5" min="1" max="60" step="1">
+                        </div>
+                        <div class="setting-row">
+                            <label>Макс. сделок/день:</label>
+                            <input type="number" id="maxDailyTrades" value="50" min="1" max="200" step="1">
+                        </div>
+                        <div class="setting-row">
+                            <label>Макс. убыток/день ($):</label>
+                            <input type="number" id="maxDailyLoss" value="20" min="1" max="500" step="1">
+                        </div>
+                        <div class="setting-row">
+                            <label>Тейк-профит ($):</label>
+                            <input type="number" id="takeProfit" value="50" min="1" max="1000" step="1">
+                        </div>
+                        <div class="setting-row">
+                            <label>Кулдаун (сек):</label>
+                            <input type="number" id="cooldownSec" value="30" min="5" max="300" step="5">
+                        </div>
+                        <div class="setting-row">
+                            <label class="toggle-item">
+                                <input type="checkbox" id="martingaleToggle"> Мартингейл
+                            </label>
+                        </div>
+                        <div class="setting-row">
+                            <label>Направление:</label>
+                            <select id="tradeDirection">
+                                <option value="both">Оба</option>
+                                <option value="call">Только CALL ▲</option>
+                                <option value="put">Только PUT ▼</option>
+                            </select>
+                        </div>
+                    </div>
+                    <!-- Trade Statistics -->
+                    <div id="tradeStats" class="trade-stats">
+                        <div class="stat-item"><span class="stat-label">Сделки:</span><span class="stat-value" id="tsTrades">0</span></div>
+                        <div class="stat-item"><span class="stat-label">Победы:</span><span class="stat-value up" id="tsWins">0</span></div>
+                        <div class="stat-item"><span class="stat-label">Поражения:</span><span class="stat-value down" id="tsLosses">0</span></div>
+                        <div class="stat-item"><span class="stat-label">Профит:</span><span class="stat-value" id="tsProfit">$0.00</span></div>
+                        <div class="stat-item"><span class="stat-label">Винрейт:</span><span class="stat-value" id="tsWinRate">0%</span></div>
+                        <div class="stat-item"><span class="stat-label">Открытые:</span><span class="stat-value" id="tsOpen">0</span></div>
+                        <div class="stat-item"><span class="stat-label">Баланс:</span><span class="stat-value" id="tsBalance">$0.00</span></div>
+                    </div>
+                    <!-- Trade Log -->
+                    <div class="trade-log-container">
+                        <h4>📋 Лог торговли</h4>
+                        <div id="tradeLog" class="trade-log"></div>
+                    </div>
+                </div>
+
+                <div class="panel">
+                    <h3>📈 Индикаторы</h3>
+                    <div class="indicator-toggles">
+                        <label class="toggle-item">
+                            <input type="checkbox" id="toggleSMA" checked> SMA (20)
+                        </label>
+                        <label class="toggle-item">
+                            <input type="checkbox" id="toggleEMA" checked> EMA (9)
+                        </label>
+                        <label class="toggle-item">
+                            <input type="checkbox" id="toggleBB" checked> Bollinger Bands
+                        </label>
+                        <label class="toggle-item">
+                            <input type="checkbox" id="toggleRSI" checked> RSI (14)
+                        </label>
+                        <label class="toggle-item">
+                            <input type="checkbox" id="toggleMACD" checked> MACD
+                        </label>
+                        <label class="toggle-item">
+                            <input type="checkbox" id="toggleStoch" checked> Stochastic
+                        </label>
+                        <label class="toggle-item">
+                            <input type="checkbox" id="toggleIchimoku"> Ichimoku
+                        </label>
+                        <label class="toggle-item">
+                            <input type="checkbox" id="toggleFib" checked> Fibonacci
+                        </label>
+                        <label class="toggle-item">
+                            <input type="checkbox" id="toggleVolume" checked> Volume
+                        </label>
+                    </div>
+                </div>
+
+                <div class="panel">
+                    <h3>🎯 Сигналы <span class="signal-count" id="signalCount">0</span></h3>
+                    <div id="signalsList" class="signals-list">
+                        <div class="signal-item waiting">Анализ...</div>
+                    </div>
+                </div>
+
+                <div class="panel">
+                    <h3>📊 Статистика</h3>
+                    <div class="stats-grid">
+                        <div class="stat-item">
+                            <span class="stat-label">RSI:</span>
+                            <span class="stat-value" id="statRSI">--</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">MACD:</span>
+                            <span class="stat-value" id="statMACD">--</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Stoch K:</span>
+                            <span class="stat-value" id="statStochK">--</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">ADX:</span>
+                            <span class="stat-value" id="statADX">--</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">SMA 20:</span>
+                            <span class="stat-value" id="statSMA">--</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">EMA 9:</span>
+                            <span class="stat-value" id="statEMA">--</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">BB Верх:</span>
+                            <span class="stat-value" id="statBBU">--</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">BB Низ:</span>
+                            <span class="stat-value" id="statBBL">--</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Волатильность:</span>
+                            <span class="stat-value" id="statVol">--</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Тренд:</span>
+                            <span class="stat-value" id="statTrend">--</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="panel">
+                    <h3>🔍 Паттерны и Дивергенции</h3>
+                    <div id="patternsList" class="patterns-list">
+                        <div class="pattern-item neutral">Поиск паттернов...</div>
+                    </div>
+                </div>
+
+                <div class="panel">
+                    <h3>⏱ История сигналов</h3>
+                    <div id="signalHistory" class="signal-history">
+                        <div class="history-item neutral-signal">Сигналы появятся здесь</div>
+                    </div>
+                </div>
+            </aside>
+        </div>
+    </div>
+
+    <script src="indicators.js"></script>
+    <script src="patterns.js"></script>
+    <script src="data.js"></script>
+    <script src="pocket-api.js"></script>
+    <script src="auto-trader.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>

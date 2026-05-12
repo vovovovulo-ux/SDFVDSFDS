@@ -1,0 +1,24 @@
+{
+  "manifest_version": 3,
+  "name": "Pocket Option Auto Trader",
+  "version": "1.0.0",
+  "description": "Автоматическая торговля для Pocket Option",
+  "permissions": [
+    "storage",
+    "webRequest"
+  ],
+  "host_permissions": [
+    "*://*.pocketoption.com/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": ["*://*.pocketoption.com/*"],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Pocket Option Auto Trader"
+  }
+}

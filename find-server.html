@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>PO Server Finder</title>
+    <style>
+        body { font-family: monospace; background: #1a1a2e; color: #eee; padding: 20px; }
+        .server { background: #0f0f23; padding: 15px; margin: 10px 0; border-radius: 8px; }
+        .success { border-left: 4px solid #00ff00; }
+        .fail { border-left: 4px solid #ff0000; }
+        .pending { border-left: 4px solid #ffff00; }
+        button { padding: 10px 20px; background: #e94560; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 16px; }
+        input { padding: 8px; width: 300px; background: #16213e; border: 1px solid #0f3460; color: #eee; border-radius: 4px; }
+    </style>
+</head>
+<body>
+    <h2>🔍 Pocket Option Server Finder</h2>
+    <p>Вставь SSID и нажми "Найти рабочий сервер":</p>
+    <input type="text" id="ssid" placeholder="SSID токен">
+    <button onclick="findWorkingServer()">🔍 Найти сервер</button>
+    <div id="results"></div>
+
+    <script>
+        const servers = [
+            'wss://demo.po.market/websocket',
+            'wss://api.po.market/websocket',
+            'wss://api-eu.po.market/websocket',
+            'wss://api-us.po.market/websocket',
+            'wss://api-asia.po.market/websocket',
+            'wss://demo-eu.po.market/websocket',
+            'wss://pocketoption.com/ws',
+            'wss://socket.pocketoption.com/websocket',
+        ];
+
+        async function findWorkingServer() {
+            const ssid = document.getElementById('ssid').value.trim();
+            const results = document.getElementById('results');
+            results.innerHTML = '';
+
+            for (const server of servers) {
+                await testServer(server, ssid, results);
+            }
+        }
+
+        function testServer(serverUrl, ssid, container) {
+            return new Promise((resolve) => {
+                const div = document.createElement('div');
+                div.className = 'server pending';
+                div.innerHTML = `<strong>⏳ ${serverUrl}</strong><br><span class="status">Тестирую...</span>`;
+                container.appendChild(div);
+
+                let timeout = setTimeout(() => {
+                    ws.close();
+                    div.className = 'server fail';
+                    div.querySelector('.status').textContent = '❌ Таймаут (5 сек)';
+                    resolve();
+                }, 5000);
+
+                try {
+                    const ws = new WebSocket(serverUrl + '/?EIO=4&transport=websocket');
+
+                    ws.onopen = function() {
+                        div.innerHTML = `<strong>✅ ${serverUrl}</strong><br><span class="status">WebSocket подключен! Ожидаю handshake...</span>`;
+                    };
+
+                    ws.onmessage = function(event) {
+                        const data = event.data;
+                        
+                        if (data === '2') {
+                            ws.send('3');
+                            div.querySelector('.status').textContent += '\n📨 Ping/Pong работает!';
+                            return;
+                        }
+
+                        if (data === '40') {
+                            clearTimeout(timeout);
+                            div.className = 'server success';
+                            div.querySelector('.status').textContent = '✅✅✅ РАБОЧИЙ СЕРВЕР! Отправляю auth...';
+                            
+                            if (ssid) {
+                                ws.send('42["auth",{"ssid":"' + ssid + '"}]');
+                                div.querySelector('.status').textContent += '\n📤 Auth отправлен';
+                            }
+                            
+                            // Listen for auth response
+                            setTimeout(() => {
+                                ws.close();
+                                resolve();
+                            }, 2000);
+                            return;
+                        }
+
+                        div.querySelector('.status').textContent += '\n📨 ' + data;
+                        
+                        // Check if auth successful
+                        if (data.includes('balance') || data.includes('uid') || data.includes('user')) {
+                            div.className = 'server success';
+                            div.querySelector('.status').textContent += '\n✅✅✅ АВТОРИЗАЦИЯ УСПЕШНА!';
+                            div.style.background = '#003300';
+                            clearTimeout(timeout);
+                        }
+                    };
+
+                    ws.onclose = function(e) {
+                        clearTimeout(timeout);
+                        if (!div.className.includes('success')) {
+                            div.className = 'server fail';
+                            div.querySelector('.status').textContent = '❌ Отключено (код: ' + e.code + ')';
+                        }
+                        resolve();
+                    };
+
+                    ws.onerror = function() {
+                        clearTimeout(timeout);
+                        div.className = 'server fail';
+                        div.querySelector('.status').textContent = '❌ Ошибка соединения';
+                        resolve();
+                    };
+                } catch(e) {
+                    clearTimeout(timeout);
+                    div.className = 'server fail';
+                    div.querySelector('.status').textContent = '❌ ' + e.message;
+                    resolve();
+                }
+            });
+        }
+    </script>
+</body>
+</html>

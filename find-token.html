@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>PO Token Finder</title>
+    <style>
+        body { font-family: monospace; background: #1a1a2e; color: #eee; padding: 20px; }
+        #log { background: #0f0f23; padding: 15px; border-radius: 8px; min-height: 300px; margin-top: 10px; white-space: pre-wrap; font-size: 12px; }
+        button { padding: 10px 20px; background: #e94560; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 16px; }
+    </style>
+</head>
+<body>
+    <h2>🔍 Pocket Option Token Finder</h2>
+    <p>Открой эту страницу В ТОМ ЖЕ браузере где открыт Pocket Option</p>
+    <button onclick="findToken()">🔍 Найти токен</button>
+    <div id="log"></div>
+
+    <script>
+        function log(msg, color = '#eee') {
+            const el = document.getElementById('log');
+            el.innerHTML += `<span style="color: ${color}">${msg}</span>\n`;
+            el.scrollTop = el.scrollHeight;
+        }
+
+        async function findToken() {
+            document.getElementById('log').innerHTML = '';
+            
+            log('🔍 Поиск токена авторизации...\n');
+            
+            // 1. Проверяем cookies
+            log('📋 Cookies:', '#42a5f5');
+            const cookies = document.cookie.split(';');
+            let found = false;
+            
+            cookies.forEach(cookie => {
+                const [name, value] = cookie.trim().split('=');
+                if (name.toLowerCase().includes('ssid') || name.toLowerCase().includes('token') || name.toLowerCase().includes('auth') || name.toLowerCase().includes('session')) {
+                    log(`  ✅ ${name} = ${value}`, '#00ff00');
+                    found = true;
+                }
+            });
+            
+            if (!found) {
+                log('  ❌ Не найден в cookies', '#ff5252');
+            }
+            
+            // 2. Проверяем localStorage
+            log('\n💾 LocalStorage:', '#42a5f5');
+            found = false;
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                const value = localStorage.getItem(key);
+                if (key.toLowerCase().includes('ssid') || key.toLowerCase().includes('token') || key.toLowerCase().includes('auth') || key.toLowerCase().includes('session')) {
+                    log(`  ✅ ${key} = ${value.substring(0, 100)}`, '#00ff00');
+                    found = true;
+                }
+            }
+            if (!found) {
+                log('  ❌ Не найден в localStorage', '#ff5252');
+            }
+            
+            // 3. Проверяем sessionStorage
+            log('\n💿 SessionStorage:', '#42a5f5');
+            found = false;
+            for (let i = 0; i < sessionStorage.length; i++) {
+                const key = sessionStorage.key(i);
+                const value = sessionStorage.getItem(key);
+                if (key.toLowerCase().includes('ssid') || key.toLowerCase().includes('token') || key.toLowerCase().includes('auth') || key.toLowerCase().includes('session')) {
+                    log(`  ✅ ${key} = ${value.substring(0, 100)}`, '#00ff00');
+                    found = true;
+                }
+            }
+            if (!found) {
+                log('  ❌ Не найден в sessionStorage', '#ff5252');
+            }
+            
+            // 4. Ищем в JavaScript переменных
+            log('\n🔧 Поиск в глобальных переменных...', '#42a5f5');
+            const suspiciousVars = ['ssid', 'token', 'auth', 'session', 'apiKey', 'socket'];
+            suspiciousVars.forEach(varName => {
+                if (window[varName]) {
+                    log(`  ✅ window.${varName} = ${JSON.stringify(window[varName]).substring(0, 100)}`, '#00ff00');
+                }
+            });
+            
+            // 5. Показываем все cookies полностью
+            log('\n📋 Все cookies:', '#42a5f5');
+            log(document.cookie, '#ffeb3b');
+            
+            // 6. Показываем ключи localStorage
+            log('\n💾 Все ключи localStorage:', '#42a5f5');
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                log(`  ${key}`, '#ffeb3b');
+            }
+            
+            // 7. Инструкция по поиску в Network
+            log('\n🌐 Если токен не найден:', '#ff9800');
+            log('1. Открой Pocket Option');
+            log('2. F12 → Network → WS (WebSocket)');
+            log('3. Обнови страницу');
+            log('4. Найди WebSocket подключение');
+            log('5. Посмотри URL - там может быть токен');
+        }
+    </script>
+</body>
+</html>
