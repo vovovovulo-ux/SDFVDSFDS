@@ -2,14 +2,20 @@
 const DataGenerator = {
     // Base prices for different pairs
     basePrices: {
+        // Major Forex
         'EUR/USD': 1.0850,
         'GBP/USD': 1.2650,
         'USD/JPY': 149.50,
         'AUD/USD': 0.6520,
         'USD/CAD': 1.3620,
         'EUR/GBP': 0.8580,
+        'NZD/USD': 0.5985,
+        'USD/CHF': 0.8835,
+        // Crypto
         'BTC/USD': 67500,
         'ETH/USD': 3450,
+        'LTC/USD': 84.50,
+        'XRP/USD': 0.5250,
         // OTC pairs
         'EUR/USD OTC': 1.0872,
         'GBP/USD OTC': 1.2688,
@@ -22,19 +28,31 @@ const DataGenerator = {
         'NZD/USD OTC': 0.5982,
         'USD/CHF OTC': 0.8834,
         'BTC/USD OTC': 67850,
-        'ETH/USD OTC': 3480
+        'ETH/USD OTC': 3480,
+        'AUD/CAD OTC': 0.8892,
+        'CAD/JPY OTC': 110.12,
+        'NZD/JPY OTC': 89.54,
+        'GBP/AUD OTC': 1.9425,
+        'EUR/AUD OTC': 1.6642,
+        'AUD/NZD OTC': 1.0895
     },
 
     // Volatility for different pairs
     volatility: {
+        // Major Forex
         'EUR/USD': 0.0005,
         'GBP/USD': 0.0007,
         'USD/JPY': 0.07,
         'AUD/USD': 0.0004,
         'USD/CAD': 0.0005,
         'EUR/GBP': 0.0004,
+        'NZD/USD': 0.00045,
+        'USD/CHF': 0.00042,
+        // Crypto
         'BTC/USD': 150,
         'ETH/USD': 25,
+        'LTC/USD': 0.85,
+        'XRP/USD': 0.0052,
         // OTC pairs (slightly different volatility)
         'EUR/USD OTC': 0.00045,
         'GBP/USD OTC': 0.00065,
@@ -47,7 +65,13 @@ const DataGenerator = {
         'NZD/USD OTC': 0.00042,
         'USD/CHF OTC': 0.00044,
         'BTC/USD OTC': 140,
-        'ETH/USD OTC': 22
+        'ETH/USD OTC': 22,
+        'AUD/CAD OTC': 0.00041,
+        'CAD/JPY OTC': 0.068,
+        'NZD/JPY OTC': 0.062,
+        'GBP/AUD OTC': 0.00082,
+        'EUR/AUD OTC': 0.00075,
+        'AUD/NZD OTC': 0.00038
     },
 
     // Check if pair is OTC
@@ -162,7 +186,10 @@ const DataGenerator = {
         const base = this.getBasePair(pair);
         if (base === 'BTC/USD') return price.toFixed(0);
         if (base === 'ETH/USD') return price.toFixed(1);
-        if (base === 'USD/JPY' || base === 'GBP/JPY' || base === 'EUR/JPY') return price.toFixed(3);
+        if (base === 'LTC/USD') return price.toFixed(2);
+        if (base === 'XRP/USD') return price.toFixed(4);
+        if (base === 'USD/JPY' || base === 'GBP/JPY' || base === 'EUR/JPY' || 
+            base === 'CAD/JPY' || base === 'NZD/JPY') return price.toFixed(3);
         return price.toFixed(5);
     },
 
@@ -171,7 +198,10 @@ const DataGenerator = {
         const base = this.getBasePair(pair);
         if (base === 'BTC/USD') return 0;
         if (base === 'ETH/USD') return 1;
-        if (base === 'USD/JPY' || base === 'GBP/JPY' || base === 'EUR/JPY') return 3;
+        if (base === 'LTC/USD') return 2;
+        if (base === 'XRP/USD') return 4;
+        if (base === 'USD/JPY' || base === 'GBP/JPY' || base === 'EUR/JPY' || 
+            base === 'CAD/JPY' || base === 'NZD/JPY') return 3;
         return 5;
     }
 };

@@ -45,8 +45,129 @@
         setupEventListeners();
         setupPocketAPI();
         setupAutoTrader();
+        startMSKClock();
+        startCandleTimer();
         loadData();
         startSimulation();
+    }
+
+    // Moscow Time Clock
+    function startMSKClock() {
+        function updateMSKTime() {
+            const now = new Date();
+            // UTC+3 for Moscow
+            const mskTime = new Date(now.getTime() + (3 * 60 + now.getTimezoneOffset()) * 60000);
+            const hours = String(mskTime.getHours()).padStart(2, '0');
+            const minutes = String(mskTime.getMinutes()).padStart(2, '0');
+            const seconds = String(mskTime.getSeconds()).padStart(2, '0');
+            
+            const timeElement = document.getElementById('mskTime');
+            if (timeElement) {
+                timeElement.textContent = `${hours}:${minutes}:${seconds}`;
+            }
+            
+            // Update market status
+            updateMarketStatus(mskTime);
+        }
+        
+        updateMSKTime();
+        setInterval(updateMSKTime, 1000);
+    }
+
+    // Update Market Status
+    function updateMarketStatus(mskTime) {
+        const isOTC = currentPair.includes(' OTC');
+        const dayOfWeek = mskTime.getDay(); // 0 = Sunday, 6 = Saturday
+        const hour = mskTime.getHours();
+        
+        const statusElement = document.getElementById('marketStatus');
+        const statusDot = document.getElementById('statusDot');
+        const statusText = document.getElementById('statusText');
+        const otcBadge = document.getElementById('otcBadge');
+        
+        if (isOTC) {
+            // OTC markets work 24/7
+            statusElement.className = 'market-status otc';
+            statusText.textContent = 'OTC 24/7';
+            otcBadge.style.display = 'inline-block';
+        } else if (dayOfWeek === 0 || dayOfWeek === 6) {
+            // Weekend - Forex closed
+            statusElement.className = 'market-status closed';
+            statusText.textContent = 'Закрыто';
+            otcBadge.style.display = 'none';
+        } else {
+            // Weekday - check if market hours (24/5 for Forex)
+            statusElement.className = 'market-status open';
+            statusText.textContent = 'Открыто';
+            otcBadge.style.display = 'none';
+        }
+    }
+
+    // Candle Countdown Timer
+    function startCandleTimer() {
+        function updateCandleTimer() {
+            const now = new Date();
+            // Convert to Moscow time (UTC+3)
+            const mskTime = new Date(now.getTime() + (3 * 60 + now.getTimezoneOffset()) * 60000);
+            
+            const minutes = mskTime.getMinutes();
+            const seconds = mskTime.getSeconds();
+            
+            // Calculate time left for current candle
+            let timeLeft = 0;
+            
+            if (currentTimeframe <= 1) {
+                // 1 minute candles
+                timeLeft = (60 - seconds) % 60;
+            } else if (currentTimeframe <= 5) {
+                // 5 minute candles
+                const minsInPeriod = 5;
+                const minsLeft = minsInPeriod - (minutes % minsInPeriod);
+                timeLeft = minsLeft * 60 - seconds;
+            } else if (currentTimeframe <= 15) {
+                // 15 minute candles
+                const minsInPeriod = 15;
+                const minsLeft = minsInPeriod - (minutes % minsInPeriod);
+                timeLeft = minsLeft * 60 - seconds;
+            } else if (currentTimeframe <= 30) {
+                // 30 minute candles
+                const minsInPeriod = 30;
+                const minsLeft = minsInPeriod - (minutes % minsInPeriod);
+                timeLeft = minsLeft * 60 - seconds;
+            } else if (currentTimeframe <= 60) {
+                // 1 hour candles
+                const minsInPeriod = 60;
+                const minsLeft = minsInPeriod - (minutes % minsInPeriod);
+                timeLeft = minsLeft * 60 - seconds;
+            } else {
+                // 4 hour candles
+                const hours = mskTime.getHours();
+                const minsInPeriod = 240; // 4 hours
+                const totalMinutes = hours * 60 + minutes;
+                const minsLeft = minsInPeriod - (totalMinutes % minsInPeriod);
+                timeLeft = minsLeft * 60 - seconds;
+            }
+            
+            const minsLeft = Math.floor(timeLeft / 60);
+            const secsLeft = timeLeft % 60;
+            
+            const timerElement = document.getElementById('candleTimer');
+            if (timerElement) {
+                timerElement.textContent = `${String(minsLeft).padStart(2, '0')}:${String(secsLeft).padStart(2, '0')}`;
+                
+                // Change color when less than 10 seconds
+                if (timeLeft <= 10) {
+                    timerElement.style.color = '#e94560';
+                    timerElement.style.fontWeight = 'bold';
+                } else {
+                    timerElement.style.color = '';
+                    timerElement.style.fontWeight = '';
+                }
+            }
+        }
+        
+        updateCandleTimer();
+        setInterval(updateCandleTimer, 1000);
     }
 
     // Play alert sound
@@ -1287,6 +1408,12 @@
         document.getElementById('pairSelect').addEventListener('change', (e) => {
             currentPair = e.target.value;
             signalHistory = [];
+            
+            // Update market status for new pair
+            const now = new Date();
+            const mskTime = new Date(now.getTime() + (3 * 60 + now.getTimezoneOffset()) * 60000);
+            updateMarketStatus(mskTime);
+            
             loadData();
         });
 

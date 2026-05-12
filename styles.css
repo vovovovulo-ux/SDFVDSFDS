@@ -60,6 +60,122 @@ body {
     gap: 16px;
 }
 
+/* Moscow Time Display */
+.time-display {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: linear-gradient(135deg, rgba(33, 150, 243, 0.15), rgba(171, 71, 188, 0.15));
+    padding: 6px 12px;
+    border-radius: 6px;
+    border: 1px solid rgba(33, 150, 243, 0.3);
+}
+
+.time-label {
+    font-size: 11px;
+    color: var(--text-secondary);
+    font-weight: 600;
+}
+
+.time-value {
+    font-size: 14px;
+    font-weight: 700;
+    font-family: 'Courier New', monospace;
+    color: #42a5f5;
+}
+
+/* Market Status */
+.market-status {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border-radius: 6px;
+    border: 1px solid;
+}
+
+.market-status.open {
+    background: rgba(38, 166, 154, 0.15);
+    border-color: rgba(38, 166, 154, 0.3);
+}
+
+.market-status.closed {
+    background: rgba(239, 83, 80, 0.15);
+    border-color: rgba(239, 83, 80, 0.3);
+}
+
+.market-status.otc {
+    background: rgba(255, 152, 0, 0.15);
+    border-color: rgba(255, 152, 0, 0.3);
+}
+
+.status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    animation: status-pulse 2s infinite;
+}
+
+.market-status.open .status-dot {
+    background: var(--green);
+}
+
+.market-status.closed .status-dot {
+    background: var(--red);
+}
+
+.market-status.otc .status-dot {
+    background: var(--orange);
+}
+
+.status-text {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.market-status.open .status-text {
+    color: var(--green);
+}
+
+.market-status.closed .status-text {
+    color: var(--red);
+}
+
+.market-status.otc .status-text {
+    color: var(--orange);
+}
+
+@keyframes status-pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(1.2); }
+}
+
+/* Candle Countdown Timer */
+.countdown-timer {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: linear-gradient(135deg, rgba(255, 152, 0, 0.15), rgba(233, 69, 96, 0.15));
+    padding: 6px 12px;
+    border-radius: 6px;
+    border: 1px solid rgba(255, 152, 0, 0.3);
+}
+
+.timer-label {
+    font-size: 11px;
+    color: var(--text-secondary);
+    font-weight: 600;
+}
+
+.timer-value {
+    font-size: 14px;
+    font-weight: 700;
+    font-family: 'Courier New', monospace;
+    color: var(--orange);
+    transition: all 0.3s ease;
+}
+
 .logo {
     font-size: 16px;
     font-weight: 700;
